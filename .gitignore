@@ -1,0 +1,22 @@
+# Binaries for programs and plugins
+/target/
+/debug/
+/release/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Cargo lock file is typically kept for binary crates
+# Cargo.lock
+
+# Kernel build artifacts
+*.img
+*.bin
+*.iso

@@ -34,7 +34,7 @@ The system is divided into five strictly isolated domains:
 cargo run
 ```
 
-For detailed setup, see [INSTALL.md](file:///home/can/Masaüstü/projeler/rian_cekirdek/rian_cekirdek/INSTALL.md).
+For detailed setup, see [docs/INSTALL.md](file:///home/can/Masaüstü/projeler/rian_cekirdek/rian_cekirdek/docs/INSTALL.md).
 
 ## Shell Commands
 | Command | Category | Description |
@@ -46,5 +46,3 @@ For detailed setup, see [INSTALL.md](file:///home/can/Masaüstü/projeler/rian_c
 
 ---
 **Status**: This is a native microkernel. While it currently boots in QEMU for rapid development, its architecture is designed for full hardware independence and security-first enterprise reliability.
-# rian_os
-# rian_os

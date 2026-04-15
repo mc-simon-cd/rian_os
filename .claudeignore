@@ -1,0 +1,27 @@
+# Rust Built Artifacts
+target/
+debug/
+release/
+**/*.rs.bk
+**/*.o
+**/*.a
+**/*.rlib
+**/*.so
+**/*.dylib
+
+# Backup & System
+**/*.bak
+**/*.swp
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# External LLM / Antigravity AI Artifacts
+# Preventing context overlap / pollution for Claude
+AI_CONTEXT.md
+.gemini/
+task.md
+implementation_plan.md
+walkthrough.md
