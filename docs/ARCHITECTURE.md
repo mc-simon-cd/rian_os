@@ -21,7 +21,9 @@ High-level services that run in kernel mode but are modularized.
 - **Loader**: A security-hardened Mach-O 64-bit loader.
 - **Security**: Mandatory Access Control (MAC) and capability-based security.
 
-## 4. I/O (Device Management)
+## 4. I/O (Hardware & Drivers)
+- **PCI Subsystem**: Automated bus probing and BAR resolution logic.
+- **VirtIO**: Native drivers for Input, GPU, and Network devices.
 - **Registry**: A unified registry for all hardware devices and drivers, replacing complex legacy models with a simple file-like interface.
 
 ## 5. API (System Interface)

@@ -9,7 +9,7 @@ The system is divided into five strictly isolated domains:
 1. **`nexus/` (The Core Microkernel)**: Manages **Round-Robin Scheduling**, Virtual Memory (4-level paging), and Stream-based IPC.
 2. **`hal/` (Hardware Abstraction Layer)**: Native interface for x86_64, AArch64, and RISC-V. Handles CPU Traps, GDT/TSS, and board-level init.
 3. **`subsys/` (Subsystems)**: Kernel services including the **VFS** (APFS/Namecache), Networking, and **Security Policies** (MAC/Sandbox).
-4. **`io/` (I/O Device Management)**: Unified Driver Registry replacing legacy models.
+4. **`io/` (I/O & Hardware)**: Automated **PCI Bus Probing**, BAR resolution, and the **VirtIO-Input** driver (ISR-safe).
 5. **`api/` (Loader & Events)**: Secure **Mach-O 64-bit Loader** (W^X enforced) and **kqueue** event multiplexing.
 
 ## Features (Pre-Alpha Highlights)
@@ -18,6 +18,7 @@ The system is divided into five strictly isolated domains:
 - **Round-Robin Scheduler**: Preemptive task management with full CPU context preservation and TSS-based stack switching.
 - **Real Memory Paging (PML4)**: x86_64 4-level paging with `map_page_safe` for robust permission resolution and collision prevention.
 - **Plan 9 (9P) Filesystem**: RPC-based host resource integration.
+- **PCI Bus Scanner**: Brute-force discovery of all hardware nodes with automated driver matching.
 - **Interactive VFS Shell**: Piped redirection (`|`, `>`, `<`) coordinating Mach Tasks natively.
 
 ## Getting Started

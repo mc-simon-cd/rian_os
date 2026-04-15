@@ -32,4 +32,4 @@
 
 ### 3. Donanım Genişlemesi
 - [x] **VirtIO-Input**: PCI Device ID 18 taraması, lock-free ring buffer ve kqueue (Edge-triggered) entegrasyonu tamamlandı.
-- [ ] **PCI Bus Probing**: Sistemdeki tüm aygıtları otomatik tanıyacak bir tarama mekanizması.
+- [x] **PCI Bus Probing**: Sistemdeki tüm aygıtları otomatik tanıyacak bir tarama mekanizması.

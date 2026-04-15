@@ -30,7 +30,9 @@ This document is generated programmatically to provide immediate context, archit
 - **Security**: Mandatory Access Control (MAC) and Capability masks.
 
 #### 4. `src/api/` and `src/io/`
-- User-space bridges and unified device registry.
+- **PCI**: Automated bus probing, BAR resolution, and driver binding.
+- **VirtIO-Input**: ISR-safe keyboard/mouse events with kqueue integration.
+- **Registry**: Unified device management for hardware drivers.
 
 ## Instructions for AI Agents
 - **Unix First:** Whenever introducing new APIs or states, try to represent the logic as a VFS file mapping rather than a distinct function call API.
