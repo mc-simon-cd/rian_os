@@ -44,6 +44,7 @@ pub extern "C" fn _start() -> ! {
     hal::board::acpi_init();
     hal::board::dtb_init();
     hal::board::virtio_gpu::virtio_gpu_init();
+    io::pci::init();
     io::registry::iokit_registry_init();
     
     if let Err(_e) = subsys::net::ninep::vfs_adapter::NinePVFS::mount() {

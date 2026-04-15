@@ -1,4 +1,5 @@
 pub mod gdt;
+pub mod instructions;
 
 use crate::nexus::memory::paging::PhysAddr;
 use crate::hal::ArchContext;
