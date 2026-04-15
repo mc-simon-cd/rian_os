@@ -33,3 +33,16 @@
 ### 3. Donanım Genişlemesi
 - [x] **VirtIO-Input**: PCI Device ID 18 taraması, lock-free ring buffer ve kqueue (Edge-triggered) entegrasyonu tamamlandı.
 - [x] **PCI Bus Probing**: Sistemdeki tüm aygıtları otomatik tanıyacak bir tarama mekanizması.
+- [ ] **Advanced Interrupt Controller (APIC/IOAPIC)**: Modern kesme yönetimi ve I/O APIC yönlendirme tabloları.
+- [ ] **Frame Buffer Terminal**: Gerçek bir tty terminal emülatörü (kaydırılabilir, font yüklenebilir).
+
+### 4. Bellek ve Sistem İyileştirmeleri (Orta Vadeli)
+- [ ] **Slab/Buddy Allocator**: Bellek parçalanmasını (fragmentation) önleyen gelişmiş heap yönetimi.
+- [ ] **Symmetric Multiprocessing (SMP)**: ACPI üzerinden diğer işlemci çekirdeklerini (AP's) uyandırma ve eşzamanlı çalışma.
+- [ ] **Disk Desteği (VFS + Fat32/Ext2)**: Kalıcı depolama birimleri için dosya sistemi sürücüleri.
+
+### 5. Ağ ve Grafik Katmanları (Hardcore Hedefler)
+- [ ] **VirtIO-Net & TCP/IP Stack**: Donanımdan bağımsız ağ sürücüsü ve temel protokoller (ARP, IP, UDP, ICMP).
+- [ ] **Pencere Yöneticisi (GUI)**: Fare etkileşimli, minimal bir kompozit pencere sistemi.
+- [ ] **R-Libc**: C programlarını R-OS üzerinde çalıştırmak için standart kütüphane implementasyonu.
+- [ ] **Userland Toolset**: Yerleşik kabuk komutlarının (`ls`, `cat`, `rm`) kullanıcı alanında (Ring 3) çalışan sürümleri.

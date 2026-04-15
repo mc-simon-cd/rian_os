@@ -29,3 +29,9 @@ High-level services that run in kernel mode but are modularized.
 ## 5. API (System Interface)
 - **Syscalls**: The primary gateway for user-space applications.
 - **Events**: A kqueue-inspired event multiplexing system for high-performance I/O.
+
+## 6. Future Directions (Roadmap Highlights)
+- **SMP Support**: Scaling the Nexus to manage multi-core task scheduling.
+- **Advanced Memory**: Implementing Slab allocators for kernel-internal objects to minimize fragmentation.
+- **Network Stack**: Native VirtIO-Net drivers and a modular TCP/IP subsystem.
+- **Userland Runtime**: A lightweight POSIX-compatible C library (R-Libc) for hosting legacy applications.
