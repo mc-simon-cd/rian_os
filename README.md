@@ -47,3 +47,4 @@ For detailed setup, see [INSTALL.md](file:///home/can/Masaüstü/projeler/rian_c
 ---
 **Status**: This is a native microkernel. While it currently boots in QEMU for rapid development, its architecture is designed for full hardware independence and security-first enterprise reliability.
 # rian_os
+# rian_os
