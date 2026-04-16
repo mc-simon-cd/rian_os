@@ -63,7 +63,7 @@ cargo build --target x86_64-unknown-none
 
 - **Error: `linker 'rust-lld' not found`**: Ensure you have the `lld` linker installed or that your Rust installation is complete.
 - **Error: `target not found`**: Double check that you added `x86_64-unknown-none` via `rustup`.
-- **QEMU not launching**: Ensure `qemu-system-x86_64` is in your PATH.
+- **QEMU not launching**: Ensure `qemu-system-x86_64` is in your `PATH`.
 
 ---
 *For more information on the architecture, see [README.md](file:///home/can/Masaüstü/projeler/rian_cekirdek/rian_cekirdek/README.md).*
