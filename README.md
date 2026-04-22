@@ -6,11 +6,11 @@ R-OS is a state-of-the-art microkernel architecture implemented in safe Rust as 
 ## Core Architecture (The 5 Domains)
 The system is divided into five strictly isolated domains:
 
-1. **`nexus/` (The Core Microkernel)**: Manages Round-Robin Scheduling, Virtual Memory (4-level paging), and Stream-based IPC.
-2. **`hal/` (Hardware Abstraction Layer)**: Native interface for `x86_64`, `AArch64`, and `RISC-V`. Handles CPU Traps, `GDT`/`TSS`, and board-level init.
-3. **`subsys/` (Subsystems)**: Kernel services including the **VFS** (Virtual File System), Networking, and **Security Policies** (MAC/Sandbox).
-4. **`io/` (I/O & Hardware)**: Automated **PCI Bus Probing**, BAR resolution, and the **VirtIO-Input** driver (ISR-safe).
-5. **`api/` (Loader & Events)**: Secure **Mach-O 64-bit loader** (`W^X` enforced) and **kqueue** event multiplexing.
+1. **`kernel/` (Core Microkernel)**: Unified domain managing Scheduling, Virtual Memory, and Mach-like IPC.
+2. **`arch/` (Hardware Abstraction)**: Native interface for `x86_64`, `AArch64`, and `RISC-V`. CPU Traps, GDT/TSS, and board init.
+3. **`services/` (Kernel Services)**: High-level services including **VFS**, Networking, and **Security Policies**.
+4. **`drivers/` (Hardware Drivers)**: PCI Bus Probing, VirtIO-GPU, and the **Framebuffer TTY** emulator.
+5. **`system/` (System Interface)**: Unified **Syscall dispatcher** and the secure **Mach-O loader**.
 
 ## Features (Pre-Alpha Highlights)
 - **Native `no_std` Execution**: Compiled for `x86_64-unknown-none`, running directly on bare silicon logic (QEMU).
