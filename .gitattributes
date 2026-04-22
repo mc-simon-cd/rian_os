@@ -1,0 +1,10 @@
+# Professional Git Attributes for R-OS
+* text=auto eol=lf
+*.rs text diff=rust
+*.md text
+*.toml text
+*.sh text eol=lf
+*.py text eol=lf
+*.img binary
+*.bin binary
+*.iso binary
