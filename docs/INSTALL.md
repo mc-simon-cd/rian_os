@@ -1,6 +1,6 @@
-# Installation & Setup Guide for R-OS
+# Installatdriversn & Setup Guide for R-OS
 
-This guide provides step-by-step instructions to set up the development environment for the R-OS microkernel.
+This guide provides step-by-step instructdriversns to set up the development environment for the R-OS microkernel.
 
 ## 1. Toolchain Setup
 
@@ -61,9 +61,9 @@ cargo build --target x86_64-unknown-none
 
 ## 5. Troubleshooting
 
-- **Error: `linker 'rust-lld' not found`**: Ensure you have the `lld` linker installed or that your Rust installation is complete.
+- **Error: `linker 'rust-lld' not found`**: Ensure you have the `lld` linker installed or that your Rust installatdriversn is complete.
 - **Error: `target not found`**: Double check that you added `x86_64-unknown-none` via `rustup`.
 - **QEMU not launching**: Ensure `qemu-system-x86_64` is in your `PATH`.
 
 ---
-*For more information on the architecture, see [README.md](file:///home/can/Masaüstü/projeler/rian_cekirdek/rian_cekirdek/README.md).*
+*For more informatdriversn on the architecture, see [README.md](file:///home/can/Masaüstü/projeler/rian_cekirdek/rian_cekirdek/README.md).*
