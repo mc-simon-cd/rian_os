@@ -50,8 +50,15 @@ pub static ALLOCATOR: HierarchicalAllocator = HierarchicalAllocator::new();
 
 pub struct HierarchicalAllocator {
     buddy: Mutex<BuddyAllocator>,
-    // Size-classed global caches
-    slabs: [Mutex<SlabCache>; 7],
+    // Size-classed global caches (8, 16, 32, 64, 128, 256, 512, 1024, 2048)
+    slabs: [Mutex<SlabCache>; 9],
+    // Special object caches
+    #[allow(dead_code)]
+    thread_cache: Mutex<SlabCache>,
+    #[allow(dead_code)]
+    vnode_cache: Mutex<SlabCache>,
+    #[allow(dead_code)]
+    process_cache: Mutex<SlabCache>,
     // Per-CPU local caches (simplified for 2 cores)
     per_cpu: [Mutex<CpuLocalCache>; 2],
 }
@@ -61,6 +68,8 @@ impl HierarchicalAllocator {
         Self {
             buddy: Mutex::new(BuddyAllocator::new()),
             slabs: [
+                Mutex::new(SlabCache::new(8)),
+                Mutex::new(SlabCache::new(16)),
                 Mutex::new(SlabCache::new(32)),
                 Mutex::new(SlabCache::new(64)),
                 Mutex::new(SlabCache::new(128)),
@@ -69,6 +78,9 @@ impl HierarchicalAllocator {
                 Mutex::new(SlabCache::new(1024)),
                 Mutex::new(SlabCache::new(2048)),
             ],
+            thread_cache: Mutex::new(SlabCache::new(512)),
+            vnode_cache: Mutex::new(SlabCache::new(256)),
+            process_cache: Mutex::new(SlabCache::new(1024)),
             per_cpu: [
                 Mutex::new(CpuLocalCache::new()),
                 Mutex::new(CpuLocalCache::new()),
@@ -96,13 +108,15 @@ impl HierarchicalAllocator {
     }
 
     fn get_size_idx(&self, size: usize) -> Option<usize> {
-        if size <= 32 { Some(0) }
-        else if size <= 64 { Some(1) }
-        else if size <= 128 { Some(2) }
-        else if size <= 256 { Some(3) }
-        else if size <= 512 { Some(4) }
-        else if size <= 1024 { Some(5) }
-        else if size <= 2048 { Some(6) }
+        if size <= 8 { Some(0) }
+        else if size <= 16 { Some(1) }
+        else if size <= 32 { Some(2) }
+        else if size <= 64 { Some(3) }
+        else if size <= 128 { Some(4) }
+        else if size <= 256 { Some(5) }
+        else if size <= 512 { Some(6) }
+        else if size <= 1024 { Some(7) }
+        else if size <= 2048 { Some(8) }
         else { None }
     }
 }

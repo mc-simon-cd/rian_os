@@ -55,7 +55,7 @@ impl Magazine {
 
 /// Per-CPU Cache containing magazines for different object sizes.
 pub struct CpuLocalCache {
-    magazines: [MagazineSet; 7],
+    magazines: [MagazineSet; 9],
 }
 
 struct MagazineSet {
@@ -78,7 +78,7 @@ impl CpuLocalCache {
             magazines: [
                 MagazineSet::new(), MagazineSet::new(), MagazineSet::new(),
                 MagazineSet::new(), MagazineSet::new(), MagazineSet::new(),
-                MagazineSet::new(),
+                MagazineSet::new(), MagazineSet::new(), MagazineSet::new(),
             ],
         }
     }

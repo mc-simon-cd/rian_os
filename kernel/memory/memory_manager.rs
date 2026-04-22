@@ -16,7 +16,6 @@
 
 use spin::Mutex;
 use alloc::collections::BTreeMap;
-use alloc::string::String;
 use alloc::format;
 use crate::libkern::dmesg::kernel_log;
 

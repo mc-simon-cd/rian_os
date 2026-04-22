@@ -13,9 +13,7 @@ impl ArchContext for RiscV64Context {
     }
 
     fn restore(&self) {
-        unsafe {
-            sepc::write(self.sepc.try_into().unwrap());
-        }
+        sepc::write(self.sepc.try_into().unwrap());
     }
 
     fn prepare_user_stack(_stack_top: VirtAddr) -> Self {
@@ -26,9 +24,7 @@ impl ArchContext for RiscV64Context {
     }
 
     fn set_kernel_stack(stack_top: VirtAddr) {
-        unsafe {
-            sscratch::write(stack_top.0.try_into().unwrap());
-        }
+        sscratch::write(stack_top.0.try_into().unwrap());
     }
 
     fn enter_user_mode(&self) -> ! {

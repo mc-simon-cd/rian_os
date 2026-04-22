@@ -18,7 +18,7 @@ use core::ptr::NonNull;
 use core::sync::atomic::{AtomicU8, Ordering};
 
 pub const MIN_ORDER: usize = 0;    // 4KB
-pub const MAX_ORDER: usize = 11;   // 8MB
+pub const MAX_ORDER: usize = 10;   // 4MB
 pub const PAGE_SIZE: usize = 4096;
 
 /// Doubly linked list node for O(1) removal.

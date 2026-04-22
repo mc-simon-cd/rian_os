@@ -33,7 +33,7 @@ impl<T> KMutex<T> {
         }
     }
 
-    pub fn lock(&self, pid: u64) -> Result<spin::MutexGuard<T>, &'static str> {
+    pub fn lock(&self, pid: u64) -> Result<spin::MutexGuard<'_, T>, &'static str> {
         if let Some(guard) = self.inner.try_lock() {
             return Ok(guard);
         }
