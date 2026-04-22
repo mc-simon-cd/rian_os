@@ -33,8 +33,8 @@
 ### 3. Donanım Genişlemesi
 - [x] **VirtIO-Input**: PCI Device ID 18 taraması, lock-free ring buffer ve kqueue (Edge-triggered) entegrasyonu tamamlandı.
 - [x] **PCI Bus Probing**: Sistemdeki tüm aygıtları otomatik tanıyacak bir tarama mekanizması.
-- [ ] **Advanced Interrupt Controller (APIC/IOAPIC)**: Modern kesme yönetimi ve I/O APIC yönlendirme tabloları.
-- [ ] **Frame Buffer Terminal**: Gerçek bir tty terminal emülatörü (kaydırılabilir, font yüklenebilir).
+- [x] **Advanced Interrupt Controller (APIC/IOAPIC)**: Modern kesme yönetimi ve I/O APIC yönlendirme tabloları.
+- [x] **Frame Buffer Terminal**: Gerçek bir tty terminal emülatörü (kaydırılabilir, font yüklenebilir).
 
 ### 4. Bellek ve Sistem İyileştirmeleri (Orta Vadeli)
 - [ ] **Slab/Buddy Allocator**: Bellek parçalanmasını (fragmentation) önleyen gelişmiş heap yönetimi.

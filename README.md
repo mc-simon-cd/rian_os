@@ -19,6 +19,8 @@ The system is divided into five strictly isolated domains:
 - **Real Memory Paging (PML4)**: `x86_64` 4-level paging with `map_page_safe` for robust permission resolution and collision prevention.
 - **Plan 9 (9P) Filesystem**: RPC-based host resource integration.
 - **PCI Bus Scanner**: Brute-force discovery of all hardware nodes with automated driver matching.
+- **Advanced Interrupt Controller (APIC)**: Replaced legacy 8259A PIC with modern x86_64 APIC architecture for SMP readiness.
+- **Framebuffer TTY Emulator**: High-performance terminal emulator with built-in font rendering and ANSI escape sequence support.
 - **Interactive VFS Shell**: Piped redirection (`|`, `>`, `<`) coordinating Mach tasks natively.
 
 ## Getting Started
