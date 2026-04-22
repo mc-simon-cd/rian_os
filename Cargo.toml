@@ -8,6 +8,10 @@ license = "Apache-2.0"
 repository = "https://github.com/simon-projec/rian-os"
 homepage = "https://github.com/simon-projec/rian-os"
 
+[[bin]]
+name = "rian_cekirdek"
+path = "main.rs"
+
 [dependencies]
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 bootloader = "0.9.23"
@@ -18,6 +22,7 @@ volatile = "0.2.6"
 aarch64-cpu = "9.4.0"
 riscv = "0.10.1"
 goblin = { version = "0.7.1", default-features = false, features = ["mach64"] }
+tock-registers = "0.8.1"
 
 [features]
 default = ["multi_core", "acpi", "tty"]
