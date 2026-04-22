@@ -20,7 +20,8 @@ riscv = "0.10.1"
 goblin = { version = "0.7.1", default-features = false, features = ["mach64"] }
 
 [features]
-default = ["multi_core", "acpi"]
+default = ["multi_core", "acpi", "tty"]
 multi_core = []
 x86_kvm_pv = []
 acpi = []
+tty = []

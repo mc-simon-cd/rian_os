@@ -37,8 +37,18 @@ pub fn kernel_log(subsystem: &str, message: &str) {
     // Broadcast via our native x86_64 VGA text buffer driver (bypassing std::io)
     crate::println!("{}", log_line);
     
-    // Forward the payload linearly directly to our Early Graphics Virtual GPU buffer
-    crate::hal::board::virtio_gpu::virtio_gpu_write_log(&log_line);
+    // Forward to our Terminal Emulator (TTY) in subsys
+    #[cfg(feature = "tty")]
+    {
+        use crate::drivers::terminal::TTY;
+        if let Some(mut tty) = TTY.try_lock() {
+            tty.write_str(&log_line);
+            tty.write_char('\n');
+        }
+    }
+
+    #[cfg(not(feature = "tty"))]
+    crate::arch::board::virtio_gpu::virtio_gpu_write_log(&log_line);
     
     // Non-blocking try_lock on the hardware spin loop to prevent Deadlocks on nested panics
     if let Some(mut buffer) = DMESG_BUFFER.try_lock() {

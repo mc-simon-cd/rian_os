@@ -21,9 +21,9 @@ use alloc::string::String;
 use alloc::format;
 // NOTE: std::io is unavailable in no_std. Real terminal input requires a
 // hardware keyboard/serial driver. The REPL loop below uses mock input.
-use crate::api::loader::macho_load;
-use crate::subsys::vfs::vnode::{vnode_create, VnodeType};
-use crate::subsys::vfs::namecache::namecache_enter;
+use crate::system::api::loader::macho_load;
+use crate::services::vfs::vnode::{vnode_create, VnodeType};
+use crate::services::vfs::namecache::namecache_enter;
 use crate::shell::builtins;
 
 pub struct ShellState {
@@ -71,7 +71,7 @@ pub fn run() {
                 let cmds = parts_vec.as_slice();
                 if cmds.len() == 2 {
                     crate::println!("ros-shell: Initiating pipeline between '{}' and '{}'", cmds[0], cmds[1]);
-                    if let Ok((fd_read, fd_write)) = crate::nexus::ipc::pipe::pipe_create() {
+                    if let Ok((fd_read, fd_write)) = crate::kernel::ipc::pipe::pipe_create() {
                         crate::println!("ros-shell: Spawned Writer Task ('{}') mapping STDOUT -> Pipe FD {}", cmds[0], fd_write);
                         crate::println!("ros-shell: Spawned Reader Task ('{}') mapping STDIN <- Pipe FD {}", cmds[1], fd_read);
                         crate::println!("ros-shell: Pipeline stream established and executing.");

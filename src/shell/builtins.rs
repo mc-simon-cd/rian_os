@@ -18,9 +18,9 @@ use alloc::string::{String, ToString};
 
 
 use crate::shell::repl::ShellState;
-use crate::subsys::vfs::namecache::{namecache_list, namecache_enter, namecache_lookup, namecache_remove};
-use crate::subsys::vfs::vnode::{vnode_create, VnodeType, vnode_read, vnode_type};
-use crate::nexus::sched::task_thread::{task_list, task_kill};
+use crate::services::vfs::namecache::{namecache_list, namecache_enter, namecache_lookup, namecache_remove};
+use crate::services::vfs::vnode::{vnode_create, VnodeType, vnode_read, vnode_type};
+use crate::kernel::sched::task_thread::{task_list, task_kill};
 use crate::libkern::dmesg::get_dmesg;
 
 pub fn execute_builtin(cmd: &str, args: &[&str], state: &mut ShellState) -> bool {
