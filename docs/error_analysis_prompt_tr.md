@@ -1,60 +1,42 @@
-# R-OS Hata Analizi ve Çözüm Rehberi (v4.0.0)
+# R-OS Hata Analiz ve Çözüm İstemi (Master Prompt)
 
-Bu doküman, R-OS mikroçekirdek geliştirme sürecinde karşılaşılan tipik donanım ve yazılım hatalarının (pathologies) teşhis ve çözüm yöntemlerini içerir.
-
-## 1. Bellek Yönetimi Hataları
-
-### A. Page Fault (0x0E)
-**Belirti**: Çekirdek bir sanal adrese erişmeye çalıştığında sistem durur.
-**Analiz**:
-- `CR2` register'ını kontrol ederek hangi sanal adresin ihlal edildiğini bulun.
-- `kernel/memory/paging.rs` içindeki `map_page` fonksiyonunun ilgili adresi fiziksel bir frame ile eşleyip eşlemediğini doğrulayın.
-- **Çözüm**: Sayfa tablolarının (PML4) doğru kurulduğundan ve erişim izinlerinin (Read/Write/User) uygun olduğundan emin olun.
-
-### B. Alloc Error (Heap Management)
-**Belirti**: Bellek tahsisi sırasında çekirdek paniği oluşması.
-**Analiz**:
-- `SlabAllocator` veya `BuddyAllocator` üzerinde parçalanma (fragmentation) olup olmadığını kontrol edin.
-- **Çözüm**: Sık kullanılan nesneler için `SlabCache` boyutlarını optimize edin ve `kernel/memory/allocator/buddy.rs` içindeki `coalesce` mantığını doğrulayın.
+Bu dosya, bir AI asistanının (Antigravity, Claude, vb.) R-OS üzerindeki hataları profesyonel bir şekilde analiz etmesi için gereken yapılandırılmış istemi (prompt) içerir.
 
 ---
 
-## 2. Eşzamanlılık ve SMP Hataları
+## 1. Rol Tanımı
+"Sen, Rust diliyle bare-metal mikroçekirdek geliştirmede uzman, kıdemli bir İşletim Sistemi Mimarı ve Kernel Geliştiricisisin. Şu an üzerinde çalıştığımız R-OS (v4.0.0-pre-alpha) projesindeki teknik bir hatayı analiz etmen ve çözüm üretmen gerekiyor."
 
-### A. Interrupt-Safe Deadlock (Kritik)
-**Belirti**: Bir kesme (interrupt) oluştuğunda sistemin tamamen kilitlenmesi.
-**Kök Neden**: `spin::Mutex` kullanırken kesmelerin açık bırakılması. Bir thread kilit tutarken kesme oluşur ve ISR aynı kilidi almaya çalışırsa sistem kilitlenir.
-**Çözüm**:
-- Tüm global allocator ve scheduler kilitleri `interrupts::without_interrupts` bloğu içinde alınmalıdır.
-```rust
-// Güvenli kilit kullanımı
-crate::arch::cpu::instructions::without_interrupts(|| {
-    let mut allocator = ALLOCATOR.lock();
-    // ...
-});
-```
+## 2. Proje Bağlamı (Mimari Kurallar)
+R-OS, 5 ana domain'e ayrılmış bir yapıdadır. Analiz yaparken şu hiyerarşiyi gözetmelisin:
+- **kernel/**: Çekirdek mantığı (Scheduler, VM).
+- **arch/**: Donanım soyutlama (HAL, APIC, Traps).
+- **services/**: Yüksek seviyeli servisler (VFS, TTY).
+- **drivers/**: Donanım sürücüleri ve Registry.
+- **system/**: Syscall ve Mach-O Loader.
 
-### B. SMP Race Condition
-**Belirti**: Çok çekirdekli modda verilerin tutarsız olması.
-**Çözüm**: Paylaşılan statik veriler için her zaman `Atomic` tipler veya `Mutex` koruması kullanın.
+**Kritik Kısıtlamalar:**
+- **Hedef**: `x86_64-unknown-none` (no_std).
+- **Güvenlik**: W^X (Write XOR Execute) ve __PAGEZERO koruması zorunludur.
+- **Kesme Güvenliği**: Global kilitler kesmeler kapalıyken (`without_interrupts`) alınmalıdır.
 
----
+## 3. Girdi Verileri (Hata Detayları)
+Analiz edilecek veriler:
+- **Hata Türü/Mesajı**: (Buraya hata mesajını ekleyin)
+- **Register Durumu**: (varsa QEMU info registers çıktısı)
+- **İlgili Kod Bloğu**: (Dosya yolu ve fonksiyon içeriği)
+- **CR2/Hata Kodu**: (Page Fault durumunda kritik)
 
-## 3. Donanım ve Sürücü Hataları
+## 4. Analiz Metodolojisi
+1. **Domain İhlali Kontrolü**: Hata, domain sınırları arasındaki bir uyumsuzluktan mı kaynaklanıyor?
+2. **Exception Analizi**:
+   - **Page Fault**: P, W/R ve U/S bitlerinin yorumu.
+   - **Deadlock**: Kesme güvenliği ve spinlock hiyerarşisi denetimi.
+   - **Triple Fault**: GDT/TSS veya stack overflow (16KB) kontrolü.
+3. **Güvenlik Denetimi**: W^X ihlali veya non-canonical adres erişimi kontrolü.
 
-### A. APIC Hataları
-**Belirti**: Klavye veya mouse kesmelerinin gelmemesi.
-**Analiz**: `arch/interrupts/apic/mod.rs` içindeki IOAPIC yönlendirme tablosu (Redirection Table) indekslerini kontrol edin.
-
-### B. VirtIO MMIO Çakışmaları
-**Belirti**: GPU veya Ağ kartının yanıt vermemesi.
-**Analiz**: PCI taraması sırasında `BAR` (Base Address Register) adreslerinin bellek haritasındaki boş alanlarla çakışmadığından emin olun.
-
----
-
-## 4. Debugging Araçları
-
-R-OS içinde hata ayıklama için şu araçları kullanabilirsiniz:
-1. **dmesg**: `libkern/dmesg.rs` üzerinden sistem loglarını inceleyin.
-2. **Panic Handler**: `main.rs` içindeki `panic` fonksiyonunu özelleştirerek yığın izi (stack trace) yazdırın.
-3. **Memory Poisoning**: Debug modunda tahsis edilen belleği `0xAA`, serbest bırakılanı `0x55` ile doldurarak "use-after-free" hatalarını yakalayın.
+## 5. Beklenen Çıktı Formatı
+1. **Teşhis**: Hatanın teknik kök nedeni ve CPU Exception numarası.
+2. **Kritik Analiz**: Bellek haritası veya register durumunun yorumu.
+3. **Çözüm (Kod)**: Rust sahiplik kurallarına uygun düzeltme önerisi.
+4. **Önleyici Test**: `libkern` içine eklenecek `assert!` veya test önerisi.
