@@ -38,9 +38,9 @@
 - [x] **Advanced Interrupt Management**: APIC routing and I/O redirection tables.
 - [x] **Frame Buffer Terminal**: Interactive scrollable TTY emulator.
 
-### 4. Memory and System Refinement (Mid-Term)
-- [ ] **Slab/Buddy Allocator**: Advanced heap management to prevent fragmentation.
-- [ ] **SMP (Symmetric Multiprocessing)**: Multi-core wake-up (APs) via ACPI and concurrent execution.
+### 4. Bellek ve Sistem İyileştirmeleri (Kısmi TAMAMLANDI)
+- [x] **Slab/Buddy Allocator**: Bellek parçalanmasını (fragmentation) önleyen gelişmiş heap yönetimi (`kernel/memory/allocator/`).
+- [ ] **SMP (Symmetric Multiprocessing)**: ACPI üzerinden diğer işlemci çekirdeklerini (APs) uyandırma ve eşzamanlı çalışma.
 - [ ] **Disk Support (VFS + Fat32/Ext2)**: Persistent storage drivers.
 
 ### 5. Network and Graphic Layers (Hardcore Goals)
