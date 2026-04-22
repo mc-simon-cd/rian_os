@@ -13,11 +13,13 @@ The HAL isolates the kernel from architecture-specific details.
 - **CPU**: Manages traps, interrupts, and context switching (register save/restore).
 - **Architecture Support**:
     - **x86_64**: `GDT`, `TSS`, and `CR3` management.
+    - **Interrupts**: Modern `APIC` (Local & I/O) architecture, replacing legacy PIC.
     - **AArch64 / RISC-V**: (Infrastructure in progress).
 
 ## 3. Subsys (Kernel Services)
 High-level services that run in kernel mode but are modularized.
 - **VFS**: A `Vnode`-based virtual filesystem.
+- **Terminal (TTY)**: A framebuffer-based terminal emulator with ANSI and font support.
 - **Loader**: A security-hardened `Mach-O 64-bit` loader.
 - **Security**: Mandatory Access Control (`MAC`) and capability-based security.
 
