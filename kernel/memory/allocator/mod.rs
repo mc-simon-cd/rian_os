@@ -1,3 +1,19 @@
+// -----------------------------------------------------------------------------
+// Copyright 2026 simon_projec
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// -----------------------------------------------------------------------------
+
 use core::alloc::{GlobalAlloc, Layout};
 use spin::Mutex;
 use alloc::vec::Vec;
@@ -70,6 +86,7 @@ impl HierarchicalAllocator {
         let base_addr = start + (metadata_pages * 4096);
         let usable_pages = num_pages - metadata_pages;
 
+        // Safety: Initializing Buddy Allocator with physical range and reserved metadata region.
         self.buddy.lock().init(base_addr, usable_pages, metadata_ptr);
         crate::libkern::dmesg::kernel_log("HEAP", "Advanced hierarchical allocator (v4.6.0) initialized with Per-CPU caches.");
     }
@@ -110,6 +127,7 @@ unsafe impl GlobalAlloc for HierarchicalAllocator {
 
         #[cfg(debug_assertions)]
         if !ptr.is_null() {
+            // Safety: tagging newly allocated memory for debugging purposes.
             core::ptr::write_bytes(ptr, 0xAA, size);
         }
 
@@ -120,6 +138,7 @@ unsafe impl GlobalAlloc for HierarchicalAllocator {
         let size = layout.size().max(layout.align());
 
         #[cfg(debug_assertions)]
+        // Safety: poisoning freed memory to detect use-after-free in debug builds.
         core::ptr::write_bytes(ptr, 0x55, size);
 
         if let Some(idx) = self.get_size_idx(size) {
@@ -149,8 +168,8 @@ fn size_to_order(size: usize) -> usize {
 }
 
 pub fn init_heap() {
+    // Safety: Initializing a 4MB heap region for the microkernel bootstrap.
     unsafe {
-        // Range adjusted for demo
         ALLOCATOR.init(0x1000000usize, 0x1000000 + 4 * 1024 * 1024);
     }
 }

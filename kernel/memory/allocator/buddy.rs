@@ -1,3 +1,19 @@
+// -----------------------------------------------------------------------------
+// Copyright 2026 simon_projec
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// -----------------------------------------------------------------------------
+
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicU8, Ordering};
 
@@ -54,6 +70,7 @@ impl BuddyAllocator {
 
         // Initialize metadata
         for i in 0..num_pages {
+            // Safety: metadata_ptr was verified to be large enough for num_pages in the main allocator init.
             let meta = &mut *self.metadata.add(i);
             meta.flags.store(0, Ordering::Relaxed);
             meta.order = 0;
@@ -72,9 +89,11 @@ impl BuddyAllocator {
             }
             
             let addr = self.base_addr + (current * PAGE_SIZE);
+            // Safety: Addresses provided in add_range/init are within physical boundaries.
             self.push_free(addr as *mut FreeBlock, order);
             
             // Mark as free and set order
+            // Safety: metadata_ptr valid for num_pages.
             let meta = &mut *self.metadata.add(current);
             meta.flags.fetch_or(PAGE_FREE | PAGE_BUDDY, Ordering::SeqCst);
             meta.order = order as u8;
@@ -99,6 +118,7 @@ impl BuddyAllocator {
                     let buddy_addr = addr + (size_pages * PAGE_SIZE);
                     let buddy_idx = page_idx + size_pages;
 
+                    // Safety: We are splitting a block we just popped, so the buddy must be within bounds.
                     unsafe {
                         let buddy_meta = &mut *self.metadata.add(buddy_idx);
                         buddy_meta.flags.fetch_or(PAGE_FREE | PAGE_BUDDY, Ordering::SeqCst);
@@ -107,6 +127,7 @@ impl BuddyAllocator {
                     }
                 }
 
+                // Safety: addr is from a valid block_ptr.
                 unsafe {
                     let meta = &mut *self.metadata.add(page_idx);
                     meta.flags.fetch_and(!(PAGE_FREE | PAGE_BUDDY), Ordering::SeqCst);
@@ -134,6 +155,7 @@ impl BuddyAllocator {
                 break;
             }
 
+            // Safety: metadata valid for num_pages.
             let buddy_meta = &mut *self.metadata.add(buddy_idx);
             let flags = buddy_meta.flags.load(Ordering::SeqCst);
 
@@ -141,6 +163,7 @@ impl BuddyAllocator {
             if (flags & (PAGE_FREE | PAGE_BUDDY)) == (PAGE_FREE | PAGE_BUDDY) && buddy_meta.order == current_order as u8 {
                 // Remove buddy from free list
                 let buddy_addr = self.base_addr + (buddy_idx * PAGE_SIZE);
+                // Safety: buddy_addr is calculated from a valid buddy_idx.
                 self.remove_from_list(buddy_addr as *mut FreeBlock, current_order);
                 
                 // Mark buddy as non-head
@@ -155,19 +178,23 @@ impl BuddyAllocator {
             }
         }
 
+        // Safety: index verified during coalesce loop.
         let meta = &mut *self.metadata.add(page_idx);
         meta.flags.fetch_or(PAGE_FREE | PAGE_BUDDY, Ordering::SeqCst);
         meta.order = current_order as u8;
+        // Safety: final current_addr is valid coalesced result.
         self.push_free(current_addr as *mut FreeBlock, current_order);
         self.used_pages -= 1 << order;
     }
 
     unsafe fn push_free(&mut self, block_ptr: *mut FreeBlock, order: usize) {
+        // Safety: block_ptr assumed to be a valid pointer from the heap range.
         let block = &mut *block_ptr;
         block.prev = None;
         block.next = self.free_lists[order];
 
         if let Some(mut next) = self.free_lists[order] {
+            // Safety: next is a valid NonNull from free_lists.
             next.as_mut().prev = NonNull::new(block_ptr);
         }
         self.free_lists[order] = NonNull::new(block_ptr);
@@ -175,6 +202,7 @@ impl BuddyAllocator {
 
     fn pop_free(&mut self, order: usize) -> Option<NonNull<FreeBlock>> {
         let mut block_ptr = self.free_lists[order]?;
+        // Safety: block_ptr is guaranteed to be valid if it's in the free_lists.
         unsafe {
             self.free_lists[order] = block_ptr.as_mut().next;
             if let Some(mut next) = block_ptr.as_mut().next {
@@ -185,14 +213,17 @@ impl BuddyAllocator {
     }
 
     unsafe fn remove_from_list(&mut self, block_ptr: *mut FreeBlock, order: usize) {
+        // Safety: block_ptr must be currently linked in the free_lists[order].
         let block = &mut *block_ptr;
         if let Some(mut prev) = block.prev {
+            // Safety: prev is a valid NonNull.
             prev.as_mut().next = block.next;
         } else {
             self.free_lists[order] = block.next;
         }
 
         if let Some(mut next) = block.next {
+            // Safety: next is a valid NonNull.
             next.as_mut().prev = block.prev;
         }
     }

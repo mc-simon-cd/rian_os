@@ -1,3 +1,19 @@
+// -----------------------------------------------------------------------------
+// Copyright 2026 simon_projec
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// -----------------------------------------------------------------------------
+
 use core::ptr::NonNull;
 use core::mem;
 
@@ -44,6 +60,7 @@ impl SlabCache {
     pub fn alloc(&mut self, buddy: &mut super::buddy::BuddyAllocator) -> Option<*mut u8> {
         // 1. Try partial slabs
         if let Some(mut slab_ptr) = self.partial_slabs {
+            // Safety: slab_ptr is a valid pointer within the partial_slabs list.
             let slab = unsafe { slab_ptr.as_mut() };
             let obj = self.alloc_from_slab(slab)?;
             
@@ -57,6 +74,7 @@ impl SlabCache {
 
         // 2. Try empty slabs
         if let Some(mut slab_ptr) = self.empty_slabs {
+            // Safety: slab_ptr is a valid pointer within the empty_slabs list.
             let slab = unsafe { slab_ptr.as_mut() };
             self.empty_slabs = slab.next_slab;
             
@@ -70,6 +88,7 @@ impl SlabCache {
         // 3. New page from buddy
         if let Some(page_ptr) = buddy.alloc(0) {
             let slab_ptr = page_ptr as *mut Slab;
+            // Safety: page_ptr is a newly allocated 4KB page from Buddy.
             unsafe {
                 self.init_slab(slab_ptr);
                 let slab = &mut *slab_ptr;
@@ -87,11 +106,13 @@ impl SlabCache {
     pub fn free(&mut self, obj: *mut u8) {
         let slab_addr = (obj as usize) & !(4096 - 1);
         let slab_ptr = slab_addr as *mut Slab;
+        // Safety: slab_ptr is derived from the object's page alignment.
         let slab = unsafe { &mut *slab_ptr };
 
         let was_full = slab.used_objects == slab.num_objects;
         
         let free_obj = obj as *mut FreeObject;
+        // Safety: the object is being returned to its owner slab.
         unsafe {
             (*free_obj).next = slab.free_list;
             slab.free_list = NonNull::new(free_obj);
@@ -110,6 +131,7 @@ impl SlabCache {
     }
 
     unsafe fn init_slab(&mut self, slab_ptr: *mut Slab) {
+        // Safety: slab_ptr must be a valid 4KB page.
         let slab = &mut *slab_ptr;
         slab.used_objects = 0;
         slab.next_slab = None;
@@ -130,6 +152,7 @@ impl SlabCache {
 
         for _ in 0..slab.num_objects {
             let free_obj = obj_ptr as *mut FreeObject;
+            // Safety: obj_ptr is within the same page.
             (*free_obj).next = slab.free_list;
             slab.free_list = NonNull::new(free_obj);
             obj_ptr += self.object_size;
@@ -138,6 +161,7 @@ impl SlabCache {
 
     fn alloc_from_slab(&self, slab: &mut Slab) -> Option<*mut u8> {
         let node_ptr = slab.free_list?;
+        // Safety: node_ptr is valid in free_list.
         unsafe {
             slab.free_list = node_ptr.as_ref().next;
             slab.used_objects += 1;
@@ -151,6 +175,7 @@ impl SlabCache {
 
         while let Some(node_ptr) = curr {
             if node_ptr.as_ptr() == target {
+                // Safety: updating pointers in the intrusive list.
                 unsafe {
                     if let Some(mut p) = prev {
                         p.as_mut().next_slab = node_ptr.as_ref().next_slab;
@@ -161,6 +186,7 @@ impl SlabCache {
                 return;
             }
             prev = Some(node_ptr);
+            // Safety: navigating the intrusive list.
             unsafe {
                 curr = node_ptr.as_ref().next_slab;
             }
