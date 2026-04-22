@@ -1,69 +1,59 @@
-# Installatdriversn & Setup Guide for R-OS
+# R-OS Installation & Development Guide
 
-This guide provides step-by-step instructdriversns to set up the development environment for the R-OS microkernel.
+This document assists you in setting up the development environment for the R-OS microkernel.
 
-## 1. Toolchain Setup
+## 1. Development Environment
+R-OS is built using the Rust Nightly toolchain and targets bare-metal `x86_64`.
 
-R-OS is built using the Rust **nightly** toolchain due to its reliance on unstable features for bare-metal development.
+### Prerequisites
+- **Ubuntu/Debian**:
+  ```bash
+  sudo apt update
+  sudo apt install qemu-system-x86 nasm gcc-multilib
+  ```
+- **Arch Linux**:
+  ```bash
+  sudo pacman -S qemu-emulators qemu-system-x86 nasm
+  ```
 
-```bash
-# Install the nightly toolchain
-rustup toolchain install nightly
+### Rust Toolchain
+1. Install Rustup: [https://rustup.rs/](https://rustup.rs/)
+2. Install Nightly: `rustup toolchain install nightly`
+3. Add Target: `rustup target add x86_64-unknown-none --toolchain nightly`
+4. Install Bootimage: `cargo install bootimage`
 
-# Add the bare-metal target for x86_64
-rustup target add x86_64-unknown-none
-
-# Install rust-src component (required for building the kernel core)
-rustup component add rust-src
-```
-
-## 2. Bootloader & Kernel Tools
-
-We use the `bootloader` crate and the `bootimage` tool to package our kernel into a bootable disk image.
-
-```bash
-# Install the bootimage tool
-cargo install bootimage
-```
-
-## 3. Hardware Emulator (QEMU)
-
-To run the kernel, you need QEMU installed on your host system.
-
-### Linux (Arch/Manjaro)
-```bash
-sudo pacman -S qemu-system-x86
-```
-
-### Linux (Ubuntu/Debian)
-```bash
-sudo apt-get install qemu-system-x86
-```
-
-### macOS
-```bash
-brew install qemu
-```
-
-## 4. Building and Running
-
-Once the environment is set up, you can build and run the kernel with a single command:
+## 2. Building and Running
+The root of the repository contains the `Cargo.toml`. You can build and launch the kernel directly via Cargo:
 
 ```bash
-# Build the kernel and launch QEMU
+# Build and launch in QEMU
 cargo run
 ```
 
-If you only want to build the kernel binary:
+### Build Profiles
+- **Debug (Default)**: Includes all logging and assertions.
+- **Release**: Optimized for performance.
+  ```bash
+  cargo run --release
+  ```
+
+## 3. Testing
+R-OS uses a custom test runner for integration testing.
 ```bash
-cargo build --target x86_64-unknown-none
+cargo test
 ```
 
-## 5. Troubleshooting
+## 4. QEMU Debugging
+To debug the kernel via GDB:
+1. Launch QEMU with GDB server:
+   ```bash
+   qemu-system-x86_64 -drive format=raw,file=target/x86_64-rian_os/debug/bootimage-rian_cekirdek.bin -s -S
+   ```
+2. Connect GDB:
+   ```bash
+   gdb target/x86_64-rian_os/debug/rian_cekirdek
+   (gdb) target remote :1234
+   ```
 
-- **Error: `linker 'rust-lld' not found`**: Ensure you have the `lld` linker installed or that your Rust installatdriversn is complete.
-- **Error: `target not found`**: Double check that you added `x86_64-unknown-none` via `rustup`.
-- **QEMU not launching**: Ensure `qemu-system-x86_64` is in your `PATH`.
-
----
-*For more informatdriversn on the architecture, see [README.md](file:///home/can/Masaüstü/projeler/rian_cekirdek/rian_cekirdek/README.md).*
+## 5. Directory Structure
+See [docs/ARCHITECTURE.md](ARCHITECTURE.md) for a detailed breakdown of the 5-domain layout.

@@ -1,48 +1,50 @@
 # R-OS Progress & Roadmap Tracker (v4.0.0-pre-alpha)
 
 ## ✅ Completed Pre-Alpha Epics
-- [x] **Base Architecture**: 5-domain split (`kernel`, `services`, `arch`, `drivers`, `system`) tam izole edildi.
-- [x] **Unix Philosophy Migratdriversn**: "Apple Darwin" kompleks IPC sınıfları silinip "Her şey bir dosyadır" Unix mantalitesine kod bazlı geçildi.
-- [x] **1. Syscalls Katmanı**: `SYS_READ`, `SYS_WRITE`, `SYS_OPEN`, `SYS_EXIT` dispatcher'ı `/src/kernel/syscall/` altına inşa edildi.
-- [x] **2. Gelişmiş Unix Sinyalleri**: `SIGINT`, `SIGKILL`, `SIGSEGV` trap frameleri manipüle ederek `trap.rs` altına implement edildi.
-- [x] **3. Unix Domain Sockets**: `AF_UNIX` tabanlı, Ready, Listening, Connected durumlarına (state-machine) sahip sanal soketler Vnode tipine eşlendi.
-- [x] **4. RAMFS (In-Memory Filesystem)**: 10MB boyut kotalı RAM belleğinde saklanan `/tmp` modülü kernel'a kazandırıldı.
-- [x] **5. Kabuk (Shell) Yönlendirmeleri**: `|`, `>`, `<` pipe/redirect stream parserları yazıldı, devasa monolithic shell kodları `builtins.rs` alt modüllerine temizlendi.
-- [x] **6. Güvenlik Maskeleri (Capabilities)**: Cihaz dosyalarına (`/dev/kmem`) özel erişim yetkisi (`CAP_SYS_RAWDrivers`) getirilerek Security Servicestem modülüne bağlandı.
-- [x] **7. VirtDrivers-GPU Simülasyonu**: Erken boot panic (dmesg) logları için, izole bir paralel `Mutex` içerisinde 1024x768 framebuffer (pixels) ayrılarak grafik tabanı atıldı.
-- [x] **8. Gerçek Page Table Mapping (PML4)**: `copy_from_user` modülleri donanımsal mantıkla map eden bellek işaretçisi doğrulama kodlarına (map_page/unmap_page) çevrildi.
-- [x] **9. Plan 9 (9P) Filesystem Network Protokolü**: Kök sanal dosya sistemi için RPC tabanlı Plan 9 (9P2000) İstemci, Codec ve Sessdriversn altyapısı eklendi.
-- [x] **10. Kqueue / EPoll Edge-Triggered Mekanizma**: VFS pipe okumalarındaki anlık Drivers polling mekanizmaları asenkron notificatdriversn sistemlerinin kqueue kopyası olan `events.rs` modülüyle harmanlanıp eklendi.
+- [x] **Base Architecture**: 5-domain split (`kernel`, `services`, `arch`, `drivers`, `system`) fully isolated at the repository root.
+- [x] **Unix Philosophy Migration**: "Apple Darwin" complex IPC classes removed in favor of "Everything is a file" Unix mentality.
+- [x] **1. Syscalls Layer**: `SYS_READ`, `SYS_WRITE`, `SYS_OPEN`, `SYS_EXIT` dispatcher built under `system/`.
+- [x] **2. Advanced Unix Signals**: `SIGINT`, `SIGKILL`, `SIGSEGV` implemented via trap frame manipulation in `arch/`.
+- [x] **3. Unix Domain Sockets**: `AF_UNIX` based virtual sockets mapped to Vnode types.
+- [x] **4. RAMFS (In-Memory Filesystem)**: 10MB quota RAM-backed `/tmp` module added to kernel.
+- [x] **5. Shell Redirections**: `|`, `>`, `<` pipe/redirect stream parsers added; monolithic shell code cleaned into `userland/shell/`.
+- [x] **6. Security Capabilities**: Specialized access permissions (e.g., `CAP_SYS_RAWIO`) integrated into the Security service.
+- [x] **7. VirtIO-GPU Framework**: 1024x768 framebuffer graphics foundation established.
+- [x] **8. Real Memory Paging (PML4)**: Hardware-level page table mapping (`map_page_safe`/`unmap_page`) implemented.
+- [x] **9. Plan 9 (9P) Filesystem Protocol**: RPC-based 9P2000 client, codec, and session infrastructure for root VFS.
+- [x] **10. Kqueue / EPoll Mechanism**: Async notification system added via `system/api/events.rs`.
+- [x] **11. APIC Interrupt Controller**: Modern Local & I/O APIC support implemented.
+- [x] **12. Framebuffer TTY Emulator**: High-performance terminal emulator with font rendering and ANSI support.
 
 ---
 
-## 🚀 Next Steps (Evre 2: Gerçek İşletim Sistemi Dinamikleri)
+## 🚀 Next Steps (Phase 2: Real OS Dynamics)
 
-### 1. Kullanıcı Modu (Ring 3) Geçişi (TAMAMLANDI)
-- [x] **no_std & Bare-Metal Migratdriversn**: Kernel tamamen `no_std` bağımlılığından arındırıldı ve `x86_64-unknown-none` hedefinde çalışır arche getirildi.
-- [x] **GDT & TSS Yapılandırması**: Kernel ve User modları için segment tanımları yapıldı, donanımsal TSS ve Ring 0 stack switching mekanizması kuruldu.
-- [x] **User-Stack Tahsisi**: Her süreç için 16KB izole edilmiş, `USER`/`WRITE`/`NX` izinli kullanıcı yığını hazırlama modülü (`src/services/process/stack.rs`) eklendi.
-- [x] **Dynamic Arch (Multi-Arch)**: `x86_64`, `AArch64` ve `RISC-V 64` mimarileri için ortak bir `ArchContext` trait'i üzerinden soyutlama katmanı oluşturuldu.
+### 1. User Mode (Ring 3) Transition (DONE)
+- [x] **no_std & Bare-Metal Migration**: Kernel fully independent of `std` and running on `x86_64-unknown-none`.
+- [x] **GDT & TSS Configuration**: Hardware-level TSS and Ring 0 stack switching established.
+- [x] **User-Stack Allocation**: 16KB isolated user stack module added.
+- [x] **Dynamic Arch (Multi-Arch)**: Common `ArchContext` trait abstraction for `x86_64`, `AArch64`, and `RISC-V`.
 
-### 2. Süreç (Process) Yaşam Döngüsü
-- [x] **Süreç Hazırlığı**: C ABI (System V AMD64) uyumlu yığın hazırlama (`argc`, `argv`, `envp`) implementasyonu bitti.
-- [x] **fork() Mekanizması**: Mevcut bir task'ın sayfa tablolarını (PML4) kopyalayarak (COW destekli) yeni bir süreç oluşturma.
-- [x] **execve() (Mach-O Loader)**: 9P üzerinden gelen bir `.macho` dosyasını (`W^X` ve `__PAGEZERO` korumalı) belleğe map edip giriş noktasına atlama.
-- [x] **Scheduler (Zamanlayıcı)**: Round-robin algoritması ile CPU zamanını süreçler arasında paylaştırma (Preemptive & Context Switching).
+### 2. Process Life Cycle
+- [x] **Süreç Hazırlığı**: C ABI (System V AMD64) stack preparation (`argc`, `argv`, `envp`) completed.
+- [x] **fork() Mechanism**: PML4 cloning (with COW support) for new processes.
+- [x] **execve() (Mach-O Loader)**: Secure Mach-O binary mapping and entry point jump.
+- [x] **Scheduler**: Round-robin preemptive task scheduling and context switching.
 
-### 3. Donanım Genişlemesi
-- [x] **VirtDrivers-Input**: PCI Device ID 18 taraması, lock-free ring buffer ve kqueue (Edge-triggered) entegrasyonu tamamlandı.
-- [x] **PCI Bus Probing**: Sistemdeki tüm aygıtları otomatik tanıyacak bir tarama mekanizması.
-- [x] **Advanced Interrupt Controller (SystemC/DriversSystemC)**: Modern kesme yönetimi ve I/O SystemC yönlendirme tabloları.
-- [x] **Frame Buffer Terminal**: Gerçek bir tty terminal emülatörü (kaydırılabilir, font yüklenebilir).
+### 3. Hardware Expansion
+- [x] **VirtIO-Input**: PCI-based keyboard/mouse input with kqueue integration.
+- [x] **PCI Bus Probing**: Automated hardware discovery and driver matching.
+- [x] **Advanced Interrupt Management**: APIC routing and I/O redirection tables.
+- [x] **Frame Buffer Terminal**: Interactive scrollable TTY emulator.
 
-### 4. Bellek ve Sistem İyileştirmeleri (Orta Vadeli)
-- [ ] **Slab/Buddy Allocator**: Bellek parçalanmasını (fragmentatdriversn) önleyen gelişmiş heap yönetimi.
-- [ ] **SMP (Symmetric Multiprocessing)**: ACPI üzerinden diğer işlemci çekirdeklerini (APs) uyandırma ve eşzamanlı çalışma.
-- [ ] **Disk Desteği (VFS + Fat32/Ext2)**: Kalıcı depolama birimleri için dosya sistemi sürücüleri.
+### 4. Memory and System Refinement (Mid-Term)
+- [ ] **Slab/Buddy Allocator**: Advanced heap management to prevent fragmentation.
+- [ ] **SMP (Symmetric Multiprocessing)**: Multi-core wake-up (APs) via ACPI and concurrent execution.
+- [ ] **Disk Support (VFS + Fat32/Ext2)**: Persistent storage drivers.
 
-### 5. Ağ ve Grafik Katmanları (Hardcore Hedefler)
-- [ ] **VirtDrivers-Net & TCP/IP Stack**: Donanımdan bağımsız ağ sürücüsü ve temel protokoller (ARP, IP, UDP, ICMP).
-- [ ] **Pencere Yöneticisi (GUI)**: Fare etkileşimli, minimal bir kompozit pencere sistemi.
-- [ ] **R-Libc**: C programlarını R-OS üzerinde çalıştırmak için standart kütüphane implementasyonu.
-- [ ] **Userland Toolset**: Yerleşik kabuk komutlarının (`ls`, `cat`, `rm`) kullanıcı alanında (Ring 3) çalışan sürümleri.
+### 5. Network and Graphic Layers (Hardcore Goals)
+- [ ] **VirtIO-Net & TCP/IP Stack**: Native networking and protocol suite (ARP, IP, UDP, ICMP).
+- [ ] **Window Manager (GUI)**: Minimal composite windowing system with mouse interaction.
+- [ ] **R-Libc**: Lightweight POSIX-compatible C library.
+- [ ] **Userland Toolset**: Native user-space implementations of core tools (`ls`, `cat`, `rm`).
