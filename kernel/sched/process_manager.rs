@@ -56,35 +56,39 @@ lazy_static::lazy_static! {
 }
 
 pub fn create_process(name: &str, cmd: &str, priority: u32, is_background: bool, ns: &str) -> u64 {
-    let mut state = SYS_PM.lock();
-    let pid = state.next_pid;
-    state.next_pid += 1;
-    
-    state.pcb.insert(pid, Pcb {
-        pid,
-        name: name.to_string(),
-        cmd: cmd.to_string(),
-        state: "READY".to_string(),
-        priority,
-        is_background,
-        cpu_time: 0,
-    });
-    
-    kernel_log("PROC", &format!("Created process {} (PID: {}, NS: {})", name, pid, ns));
-    pid
+    crate::arch::cpu::without_interrupts(|| {
+        let mut state = SYS_PM.lock();
+        let pid = state.next_pid;
+        state.next_pid += 1;
+        
+        state.pcb.insert(pid, Pcb {
+            pid,
+            name: name.to_string(),
+            cmd: cmd.to_string(),
+            state: "READY".to_string(),
+            priority,
+            is_background,
+            cpu_time: 0,
+        });
+        
+        kernel_log("PROC", &format!("Created process {} (PID: {}, NS: {})", name, pid, ns));
+        pid
+    })
 }
 
 pub fn proc_kill(pid: u64) -> String {
-    let mut state = SYS_PM.lock();
-    if state.pcb.remove(&pid).is_some() {
-        for core in state.cores.iter_mut() {
-            if core.pid == Some(pid) {
-                core.pid = None;
+    crate::arch::cpu::without_interrupts(|| {
+        let mut state = SYS_PM.lock();
+        if state.pcb.remove(&pid).is_some() {
+            for core in state.cores.iter_mut() {
+                if core.pid == Some(pid) {
+                    core.pid = None;
+                }
             }
+            kernel_log("PROC", &format!("Killed process (PID: {})", pid));
+            format!("Process {} killed.", pid)
+        } else {
+            format!("Error: PID {} not found.", pid)
         }
-        kernel_log("PROC", &format!("Killed process (PID: {})", pid));
-        format!("Process {} killed.", pid)
-    } else {
-        format!("Error: PID {} not found.", pid)
-    }
+    })
 }

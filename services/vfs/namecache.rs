@@ -41,16 +41,21 @@ pub fn namecache_init() {
 
 pub fn namecache_enter(parent_vid: usize, name: &str, target_vid: usize) {
     let key = format!("{}_{}", parent_vid, name);
-    let mut cache = NAMECACHE.lock();
-    cache.insert(key, target_vid);
+    crate::arch::cpu::without_interrupts(|| {
+        let mut cache = NAMECACHE.lock();
+        cache.insert(key, target_vid);
+    });
     kernel_log("VFS_NC", &format!("Namecache enter: '{}' -> Vnode [{}]", name, target_vid));
 }
 
 pub fn namecache_lookup(parent_vid: usize, name: &str) -> Option<usize> {
     let key = format!("{}_{}", parent_vid, name);
-    let cache = NAMECACHE.lock();
+    let res = crate::arch::cpu::without_interrupts(|| {
+        let cache = NAMECACHE.lock();
+        cache.get(&key).copied()
+    });
     
-    if let Some(&vid) = cache.get(&key) {
+    if let Some(vid) = res {
         kernel_log("VFS_NC", &format!("Namecache hit: '{}' resolved to Vnode [{}] natively.", name, vid));
         Some(vid)
     } else {
@@ -60,24 +65,30 @@ pub fn namecache_lookup(parent_vid: usize, name: &str) -> Option<usize> {
 }
 
 pub fn namecache_list(parent_vid: usize) -> Vec<String> {
-    let cache = NAMECACHE.lock();
-    let prefix = format!("{}_", parent_vid);
-    let mut results = Vec::new();
-    
-    for key in cache.keys() {
-        if key.starts_with(&prefix) {
-            let filename = key.strip_prefix(&prefix).unwrap();
-            results.push(filename.to_string());
+    crate::arch::cpu::without_interrupts(|| {
+        let cache = NAMECACHE.lock();
+        let prefix = format!("{}_", parent_vid);
+        let mut results = Vec::new();
+        
+        for key in cache.keys() {
+            if key.starts_with(&prefix) {
+                let filename = key.strip_prefix(&prefix).unwrap();
+                results.push(filename.to_string());
+            }
         }
-    }
-    
-    results
+        
+        results
+    })
 }
 
 pub fn namecache_remove(parent_vid: usize, name: &str) -> Result<(), &'static str> {
     let key = format!("{}_{}", parent_vid, name);
-    let mut cache = NAMECACHE.lock();
-    if cache.remove(&key).is_some() {
+    let removed = crate::arch::cpu::without_interrupts(|| {
+        let mut cache = NAMECACHE.lock();
+        cache.remove(&key).is_some()
+    });
+
+    if removed {
         crate::libkern::dmesg::kernel_log("VFS_NC", &format!("Namecache remove: '{}' unlinked.", name));
         Ok(())
     } else {

@@ -138,8 +138,9 @@ macro_rules! println {
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
-    // We utilize x86_64 interrupts cleanly if running in ring 0
-    // To ensure no deadlocks on panic, we'd normally disable interrupts here
-    // but the spin mutex natively protects iteration safely.
-    WRITER.lock().write_fmt(args).unwrap();
+    // Safety: We disable interrupts to prevent deadlocks if an interrupt occurs 
+    // while the WRITER lock is held and the ISR attempts to print.
+    crate::arch::cpu::without_interrupts(|| {
+        WRITER.lock().write_fmt(args).unwrap();
+    });
 }
