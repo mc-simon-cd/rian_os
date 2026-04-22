@@ -38,7 +38,7 @@
 
 ### 4. Bellek ve Sistem İyileştirmeleri (Orta Vadeli)
 - [ ] **Slab/Buddy Allocator**: Bellek parçalanmasını (fragmentation) önleyen gelişmiş heap yönetimi.
-- [ ] **Symmetric Multiprocessing (SMP)**: ACPI üzerinden diğer işlemci çekirdeklerini (APs) uyandırma ve eşzamanlı çalışma.
+- [ ] **SMP (Symmetric Multiprocessing)**: ACPI üzerinden diğer işlemci çekirdeklerini (APs) uyandırma ve eşzamanlı çalışma.
 - [ ] **Disk Desteği (VFS + Fat32/Ext2)**: Kalıcı depolama birimleri için dosya sistemi sürücüleri.
 
 ### 5. Ağ ve Grafik Katmanları (Hardcore Hedefler)
