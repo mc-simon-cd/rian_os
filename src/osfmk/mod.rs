@@ -14,9 +14,11 @@
 // limitations under the License.
 // -----------------------------------------------------------------------------
 
-pub mod task_thread;
-pub mod mach_msg;
-pub mod mach_exc;
-pub mod vnode_pager;
-pub mod vm_object;
+pub mod kern;
 pub mod ipc;
+pub mod vm;
+pub mod mach_exc;
+
+// Forward exports for convenience or XNU-compat
+pub use kern::percpu;
+pub use kern::sync;

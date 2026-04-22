@@ -15,19 +15,17 @@
 // -----------------------------------------------------------------------------
 
 use crate::libkern::dmesg::kernel_log;
+use crate::libkern::safe_access::{Result, Ok};
+use alloc::format;
 
-pub fn acpi_init() {
-    kernel_log("ACPI", "Parsing ACPI Extended System Description Table (XSDT) from Rust Structs...");
-    kernel_log("ACPI", "Found Multiple APIC Description Table (MADT). SMP Enabled.");
-    kernel_log("ACPI", "Power Management Timer (PMT) detected.");
+pub fn ptrace_attach(target_pid: u64) -> Result<bool, &'static str> {
+    // In a real kernel, we would check if the process exists in the process manager.
+    // For this simulation, we'll just log the attachment.
+    
+    kernel_log("DEBUG", &format!("ptrace: Attached to PID {}. Halting process.", target_pid));
+    Ok(true)
 }
 
-pub fn dtb_init() {
-    kernel_log("DTB", "Searching for flattened device tree (FDT)...");
-    kernel_log("DTB", "Machine model: Virt-Machine (QEMU/Simulator)");
-    kernel_log("DTB", "Parsed 2x CPU Cores, 1x PL011 UART natively in Rust.");
+pub fn ptrace_peek(_target_pid: u64, _addr: usize) -> Result<&'static str, &'static str> {
+    Ok("0xDEADBEEF")
 }
-
-pub mod virtio_gpu;
-pub mod vga;
-pub mod tests;

@@ -15,19 +15,28 @@
 // -----------------------------------------------------------------------------
 
 use crate::libkern::dmesg::kernel_log;
+use crate::libkern::safe_access::{Result, Ok, Err};
+use alloc::format;
+use spin::Mutex;
 
-pub fn acpi_init() {
-    kernel_log("ACPI", "Parsing ACPI Extended System Description Table (XSDT) from Rust Structs...");
-    kernel_log("ACPI", "Found Multiple APIC Description Table (MADT). SMP Enabled.");
-    kernel_log("ACPI", "Power Management Timer (PMT) detected.");
+pub struct ContextState {
+    pub active_pid: Option<u64>,
 }
 
-pub fn dtb_init() {
-    kernel_log("DTB", "Searching for flattened device tree (FDT)...");
-    kernel_log("DTB", "Machine model: Virt-Machine (QEMU/Simulator)");
-    kernel_log("DTB", "Parsed 2x CPU Cores, 1x PL011 UART natively in Rust.");
+lazy_static::lazy_static! {
+    pub static ref SYS_CONTEXT: Mutex<ContextState> = Mutex::new(ContextState {
+        active_pid: None,
+    });
 }
 
-pub mod virtio_gpu;
-pub mod vga;
-pub mod tests;
+pub fn context_init() {
+    kernel_log("CTX", "Context Switching and State Restorer initialized.");
+}
+
+pub fn context_switch(next_pid: u64) -> Result<bool, &'static str> {
+    let mut state = SYS_CONTEXT.lock();
+    state.active_pid = Some(next_pid);
+    
+    kernel_log("CTX", &format!("Context Switched -> PID {}", next_pid));
+    Ok(true)
+}

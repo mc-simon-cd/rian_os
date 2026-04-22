@@ -1,5 +1,7 @@
 pub mod stack;
 pub mod execve;
+pub mod ptrace;
+pub mod cgroups;
 
 use crate::nexus::memory::paging::Mapper;
 use crate::nexus::sched::task_thread;

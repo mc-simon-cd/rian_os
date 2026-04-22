@@ -14,20 +14,32 @@
 // limitations under the License.
 // -----------------------------------------------------------------------------
 
+use spin::Mutex;
+use alloc::collections::BTreeMap;
+use alloc::string::{String, ToString};
 use crate::libkern::dmesg::kernel_log;
 
-pub fn acpi_init() {
-    kernel_log("ACPI", "Parsing ACPI Extended System Description Table (XSDT) from Rust Structs...");
-    kernel_log("ACPI", "Found Multiple APIC Description Table (MADT). SMP Enabled.");
-    kernel_log("ACPI", "Power Management Timer (PMT) detected.");
+pub struct BpfState {
+    pub filters: BTreeMap<String, String>,
 }
 
-pub fn dtb_init() {
-    kernel_log("DTB", "Searching for flattened device tree (FDT)...");
-    kernel_log("DTB", "Machine model: Virt-Machine (QEMU/Simulator)");
-    kernel_log("DTB", "Parsed 2x CPU Cores, 1x PL011 UART natively in Rust.");
+lazy_static::lazy_static! {
+    pub static ref SYS_BPF: Mutex<BpfState> = Mutex::new(BpfState {
+        filters: BTreeMap::new(),
+    });
 }
 
-pub mod virtio_gpu;
-pub mod vga;
-pub mod tests;
+pub fn bpf_block(ip: &str) -> String {
+    let mut state = SYS_BPF.lock();
+    state.filters.insert(ip.to_string(), "DROP".to_string());
+    kernel_log("eBPF", &alloc::format!("Added rule: Block incoming/outgoing {}", ip));
+    alloc::format!("eBPF: Attached DROP filter for IP {}", ip)
+}
+
+pub fn bpf_check_packet(ip: &str) -> bool {
+    let state = SYS_BPF.lock();
+    match state.filters.get(ip) {
+        Some(action) if action == "DROP" => false,
+        _ => true,
+    }
+}

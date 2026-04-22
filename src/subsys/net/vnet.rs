@@ -14,20 +14,22 @@
 // limitations under the License.
 // -----------------------------------------------------------------------------
 
+use spin::Mutex;
+use alloc::string::{String, ToString};
+// (Unused imports removed)
 use crate::libkern::dmesg::kernel_log;
 
-pub fn acpi_init() {
-    kernel_log("ACPI", "Parsing ACPI Extended System Description Table (XSDT) from Rust Structs...");
-    kernel_log("ACPI", "Found Multiple APIC Description Table (MADT). SMP Enabled.");
-    kernel_log("ACPI", "Power Management Timer (PMT) detected.");
+pub struct VnetRouter {
+    pub gateway: String,
 }
 
-pub fn dtb_init() {
-    kernel_log("DTB", "Searching for flattened device tree (FDT)...");
-    kernel_log("DTB", "Machine model: Virt-Machine (QEMU/Simulator)");
-    kernel_log("DTB", "Parsed 2x CPU Cores, 1x PL011 UART natively in Rust.");
+lazy_static::lazy_static! {
+    pub static ref SYS_VNET_ROUTER: Mutex<VnetRouter> = Mutex::new(VnetRouter {
+        gateway: "192.168.1.1".to_string(),
+    });
 }
 
-pub mod virtio_gpu;
-pub mod vga;
-pub mod tests;
+pub fn vnet_router_init() {
+    let state = SYS_VNET_ROUTER.lock();
+    kernel_log("VNET", &alloc::format!("Virtual Router initialized. Gateway: {}", state.gateway));
+}

@@ -16,3 +16,4 @@
 
 pub mod dmesg;
 pub mod error;
+pub mod safe_access;

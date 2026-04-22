@@ -14,20 +14,23 @@
 // limitations under the License.
 // -----------------------------------------------------------------------------
 
-use crate::libkern::dmesg::kernel_log;
+/// Rust natively supports Option and Result, so this module primarily serves
+/// as a structural bridge for legacy code expecting safe access patterns.
 
-pub fn acpi_init() {
-    kernel_log("ACPI", "Parsing ACPI Extended System Description Table (XSDT) from Rust Structs...");
-    kernel_log("ACPI", "Found Multiple APIC Description Table (MADT). SMP Enabled.");
-    kernel_log("ACPI", "Power Management Timer (PMT) detected.");
+pub use core::option::Option;
+pub use core::option::Option::{Some, None};
+pub use core::result::Result;
+pub use core::result::Result::{Ok, Err};
+
+pub fn safe_get<T>(slice: &[T], index: usize) -> Option<&T> {
+    slice.get(index)
 }
 
-pub fn dtb_init() {
-    kernel_log("DTB", "Searching for flattened device tree (FDT)...");
-    kernel_log("DTB", "Machine model: Virt-Machine (QEMU/Simulator)");
-    kernel_log("DTB", "Parsed 2x CPU Cores, 1x PL011 UART natively in Rust.");
+pub fn catch_unwind<F, T>(f: F) -> Result<T, &'static str> 
+where 
+    F: FnOnce() -> T
+{
+    // In a no_std kernel, real catch_unwind requires custom landing pads.
+    // This is a placeholder that simply executes the function.
+    Ok(f())
 }
-
-pub mod virtio_gpu;
-pub mod vga;
-pub mod tests;
