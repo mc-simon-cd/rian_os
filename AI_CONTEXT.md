@@ -16,7 +16,7 @@ This document is generated programmatically to provide immediate context, archit
 
 #### 1. `kernel/` (Kernel Core)
 - **Sched**: Preemptive Round-Robin scheduler managing `ThreadState` (Ready, Running, Blocked, Zombie).
-- **Memory**: Hardened 4-level paging (`PML4`) with `map_page_safe` and `COW` cloning support.
+- **Memory**: Hardened 4-level paging (`PML4`) with `map_page_safe` and `COW` cloning support. Advanced **v4.6.0 Hierarchical Allocator** (Slab/Buddy) with Per-CPU caches and interrupt-safe locking.
 - **IPC**: Pipe-based communication primitives.
 
 #### 2. `arch/` (Hardware Abstraction Layer)
@@ -41,3 +41,4 @@ This document is generated programmatically to provide immediate context, archit
 ## Instructions for AI Agents
 - **Unix First:** Whenever introducing new subsystems or states, try to represent the logic as a VFS file mapping rather than a distinct function call system.
 - Keep structures as simple as possible. Assume all processes can be piped into one another.
+- **Diagnostics:** Always check `docs/debugging_report.md` and `docs/error_analysis_prompt_tr.md` for known pathologies and diagnostic loops.
