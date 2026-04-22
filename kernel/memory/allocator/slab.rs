@@ -1,12 +1,13 @@
 use core::ptr::NonNull;
 use core::mem;
 
-/// A single slab: one page managed as a list of fixed-size objects.
+/// A single slab managed as a list of fixed-size objects.
 struct Slab {
     next_slab: Option<NonNull<Slab>>,
     free_list: Option<NonNull<FreeObject>>,
     num_objects: usize,
     used_objects: usize,
+    color_offset: usize,
 }
 
 struct FreeObject {
@@ -19,6 +20,8 @@ pub struct SlabCache {
     partial_slabs: Option<NonNull<Slab>>,
     full_slabs: Option<NonNull<Slab>>,
     empty_slabs: Option<NonNull<Slab>>,
+    next_color: usize,
+    max_colors: usize,
 }
 
 unsafe impl Send for SlabCache {}
@@ -26,22 +29,24 @@ unsafe impl Sync for SlabCache {}
 
 impl SlabCache {
     pub const fn new(size: usize) -> Self {
+        // We target 64-byte cache lines for coloring
+        let max_colors = 64 / 8; // 8 possible color offsets if aligned to 8
         Self {
             object_size: size,
             partial_slabs: None,
             full_slabs: None,
             empty_slabs: None,
+            next_color: 0,
+            max_colors,
         }
     }
 
-    /// Allocate an object from the cache.
     pub fn alloc(&mut self, buddy: &mut super::buddy::BuddyAllocator) -> Option<*mut u8> {
-        // 1. Try partial slabs first
+        // 1. Try partial slabs
         if let Some(mut slab_ptr) = self.partial_slabs {
             let slab = unsafe { slab_ptr.as_mut() };
             let obj = self.alloc_from_slab(slab)?;
             
-            // If slab is now full, move to full_slabs
             if slab.used_objects == slab.num_objects {
                 self.partial_slabs = slab.next_slab;
                 slab.next_slab = self.full_slabs;
@@ -55,16 +60,15 @@ impl SlabCache {
             let slab = unsafe { slab_ptr.as_mut() };
             self.empty_slabs = slab.next_slab;
             
-            let obj = self.alloc_from_slab(slab)?;
+            let obj = self.alloc_from_slab(slab).unwrap();
             
-            // Move to partial (since we just took one object)
-                slab.next_slab = self.partial_slabs;
-                self.partial_slabs = Some(slab_ptr);
+            slab.next_slab = self.partial_slabs;
+            self.partial_slabs = Some(slab_ptr);
             return Some(obj);
         }
 
-        // 3. No available slabs, allocate a new page from buddy
-        if let Some(page_ptr) = buddy.alloc(0) { // Order 0 = 4KB
+        // 3. New page from buddy
+        if let Some(page_ptr) = buddy.alloc(0) {
             let slab_ptr = page_ptr as *mut Slab;
             unsafe {
                 self.init_slab(slab_ptr);
@@ -80,45 +84,44 @@ impl SlabCache {
         None
     }
 
-    /// Free an object back to the cache.
     pub fn free(&mut self, obj: *mut u8) {
-        // Find which slab this object belongs to (page alignment)
         let slab_addr = (obj as usize) & !(4096 - 1);
         let slab_ptr = slab_addr as *mut Slab;
         let slab = unsafe { &mut *slab_ptr };
 
         let was_full = slab.used_objects == slab.num_objects;
         
+        let free_obj = obj as *mut FreeObject;
         unsafe {
-            let free_obj = obj as *mut FreeObject;
             (*free_obj).next = slab.free_list;
             slab.free_list = NonNull::new(free_obj);
             slab.used_objects -= 1;
         }
 
-        // Slab state transition
         if slab.used_objects == 0 {
-            // Slab is now empty. Move from partial to empty.
             Self::remove_node(slab_ptr, &mut self.partial_slabs);
             slab.next_slab = self.empty_slabs;
             self.empty_slabs = NonNull::new(slab_ptr);
         } else if was_full {
-            // Slab was full, now partial. Move from full to partial.
             Self::remove_node(slab_ptr, &mut self.full_slabs);
             slab.next_slab = self.partial_slabs;
             self.partial_slabs = NonNull::new(slab_ptr);
         }
     }
 
-    unsafe fn init_slab(&self, slab_ptr: *mut Slab) {
+    unsafe fn init_slab(&mut self, slab_ptr: *mut Slab) {
         let slab = &mut *slab_ptr;
         slab.used_objects = 0;
         slab.next_slab = None;
         slab.free_list = None;
+        
+        // Apply Cache Coloring
+        slab.color_offset = self.next_color * 8;
+        self.next_color = (self.next_color + 1) % self.max_colors;
 
         let page_start = slab_ptr as usize;
         let header_size = mem::size_of::<Slab>();
-        let mut obj_ptr = page_start + header_size;
+        let mut obj_ptr = page_start + header_size + slab.color_offset;
         
         let align = 8;
         obj_ptr = (obj_ptr + align - 1) & !(align - 1);

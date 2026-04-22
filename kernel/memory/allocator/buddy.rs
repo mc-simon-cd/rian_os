@@ -1,19 +1,34 @@
 use core::ptr::NonNull;
+use core::sync::atomic::{AtomicU8, Ordering};
 
 pub const MIN_ORDER: usize = 0;    // 4KB
-pub const MAX_ORDER: usize = 11;   // 8MB (4KB * 2^11)
+pub const MAX_ORDER: usize = 11;   // 8MB
 pub const PAGE_SIZE: usize = 4096;
 
-/// An intrusive node in the free list.
-struct FreeNode {
-    next: Option<NonNull<FreeNode>>,
+/// Doubly linked list node for O(1) removal.
+pub struct FreeBlock {
+    next: Option<NonNull<FreeBlock>>,
+    prev: Option<NonNull<FreeBlock>>,
 }
 
-/// Buddy Allocator for page-level management.
+/// Metadata for every physical page.
+/// Stored in a separate region to avoid cache pollution and fragmentation.
+#[repr(C)]
+pub struct PageMetadata {
+    flags: AtomicU8,
+    order: u8,
+}
+
+const PAGE_FREE: u8 = 1 << 0;
+const PAGE_BUDDY: u8 = 1 << 1;
+
+/// Advanced Buddy Allocator with Bitmap/Metadata support.
 pub struct BuddyAllocator {
-    free_lists: [Option<NonNull<FreeNode>>; MAX_ORDER + 1],
-    total_memory: usize,
-    used_memory: usize,
+    free_lists: [Option<NonNull<FreeBlock>>; MAX_ORDER + 1],
+    metadata: *mut PageMetadata,
+    base_addr: usize,
+    num_pages: usize,
+    used_pages: usize,
 }
 
 unsafe impl Send for BuddyAllocator {}
@@ -23,121 +38,166 @@ impl BuddyAllocator {
     pub const fn new() -> Self {
         Self {
             free_lists: [None; MAX_ORDER + 1],
-            total_memory: 0,
-            used_memory: 0,
+            metadata: core::ptr::null_mut(),
+            base_addr: 0,
+            num_pages: 0,
+            used_pages: 0,
         }
     }
 
-    /// Initialize the allocator with a range of memory.
-    /// Start and end must be page-aligned.
-    pub unsafe fn add_range(&mut self, start: usize, end: usize) {
-        let mut current = start;
-        while current + PAGE_SIZE <= end {
-            // Find the largest possible order for the current address
+    /// Initialize the allocator with a base address and number of pages.
+    /// metadata_ptr must point to a region large enough to hold metadata for all pages.
+    pub unsafe fn init(&mut self, base_addr: usize, num_pages: usize, metadata_ptr: *mut PageMetadata) {
+        self.base_addr = base_addr;
+        self.num_pages = num_pages;
+        self.metadata = metadata_ptr;
+
+        // Initialize metadata
+        for i in 0..num_pages {
+            let meta = &mut *self.metadata.add(i);
+            meta.flags.store(0, Ordering::Relaxed);
+            meta.order = 0;
+        }
+
+        // Add the entire range as the largest possible blocks
+        let mut current = 0;
+        while current < num_pages {
             let mut order = MAX_ORDER;
             while order > MIN_ORDER {
-                let size = PAGE_SIZE << order;
-                if current % size == 0 && current + size <= end {
+                let size_pages = 1 << order;
+                if current % size_pages == 0 && current + size_pages <= num_pages {
                     break;
                 }
                 order -= 1;
             }
             
-            self.push_free(current as *mut FreeNode, order);
-            self.total_memory += PAGE_SIZE << order;
-            current += PAGE_SIZE << order;
+            let addr = self.base_addr + (current * PAGE_SIZE);
+            self.push_free(addr as *mut FreeBlock, order);
+            
+            // Mark as free and set order
+            let meta = &mut *self.metadata.add(current);
+            meta.flags.fetch_or(PAGE_FREE | PAGE_BUDDY, Ordering::SeqCst);
+            meta.order = order as u8;
+
+            current += 1 << order;
         }
     }
 
-    /// Allocate a block of memory with the given order.
     pub fn alloc(&mut self, order: usize) -> Option<*mut u8> {
         if order > MAX_ORDER {
             return None;
         }
 
-        // Search for a free block in the requested order or higher
         for i in order..=MAX_ORDER {
-            if let Some(node_ptr) = self.pop_free(i) {
-                // If we found a larger block, split it
+            if let Some(block_ptr) = self.pop_free(i) {
+                let addr = block_ptr.as_ptr() as usize;
+                let page_idx = (addr - self.base_addr) / PAGE_SIZE;
+
+                // Split if necessary
                 for j in (order..i).rev() {
-                    let size = PAGE_SIZE << j;
-                    let buddy_addr = (node_ptr.as_ptr() as usize) + size;
+                    let size_pages = 1 << j;
+                    let buddy_addr = addr + (size_pages * PAGE_SIZE);
+                    let buddy_idx = page_idx + size_pages;
+
                     unsafe {
-                        self.push_free(buddy_addr as *mut FreeNode, j);
+                        let buddy_meta = &mut *self.metadata.add(buddy_idx);
+                        buddy_meta.flags.fetch_or(PAGE_FREE | PAGE_BUDDY, Ordering::SeqCst);
+                        buddy_meta.order = j as u8;
+                        self.push_free(buddy_addr as *mut FreeBlock, j);
                     }
                 }
-                self.used_memory += PAGE_SIZE << order;
-                return Some(node_ptr.as_ptr() as *mut u8);
+
+                unsafe {
+                    let meta = &mut *self.metadata.add(page_idx);
+                    meta.flags.fetch_and(!(PAGE_FREE | PAGE_BUDDY), Ordering::SeqCst);
+                    meta.order = order as u8;
+                }
+
+                self.used_pages += 1 << order;
+                return Some(addr as *mut u8);
             }
         }
 
         None
     }
 
-    /// Free a block of memory.
-    /// Address and order must match the original allocation.
     pub unsafe fn free(&mut self, addr: *mut u8, order: usize) {
         let mut current_addr = addr as usize;
         let mut current_order = order;
+        let mut page_idx = (current_addr - self.base_addr) / PAGE_SIZE;
 
         while current_order < MAX_ORDER {
-            let size = PAGE_SIZE << current_order;
-            let buddy_addr = current_addr ^ size;
+            let size_pages = 1 << current_order;
+            let buddy_idx = page_idx ^ size_pages;
+            
+            if buddy_idx >= self.num_pages {
+                break;
+            }
 
-            // Search for the buddy in the current order's free list
-            if let Some(_buddy_ptr) = self.find_and_remove(buddy_addr, current_order) {
-                // Found buddy! Coalesce into a larger block.
-                current_addr &= !size; // Start address of combined block
+            let buddy_meta = &mut *self.metadata.add(buddy_idx);
+            let flags = buddy_meta.flags.load(Ordering::SeqCst);
+
+            // Is buddy free and of the same order?
+            if (flags & (PAGE_FREE | PAGE_BUDDY)) == (PAGE_FREE | PAGE_BUDDY) && buddy_meta.order == current_order as u8 {
+                // Remove buddy from free list
+                let buddy_addr = self.base_addr + (buddy_idx * PAGE_SIZE);
+                self.remove_from_list(buddy_addr as *mut FreeBlock, current_order);
+                
+                // Mark buddy as non-head
+                buddy_meta.flags.fetch_and(!PAGE_BUDDY, Ordering::SeqCst);
+
+                // Coalesce
+                page_idx &= !size_pages;
+                current_addr = self.base_addr + (page_idx * PAGE_SIZE);
                 current_order += 1;
             } else {
-                // Buddy not free, stop coalescing
                 break;
             }
         }
 
-        self.push_free(current_addr as *mut FreeNode, current_order);
-        self.used_memory -= PAGE_SIZE << order;
+        let meta = &mut *self.metadata.add(page_idx);
+        meta.flags.fetch_or(PAGE_FREE | PAGE_BUDDY, Ordering::SeqCst);
+        meta.order = current_order as u8;
+        self.push_free(current_addr as *mut FreeBlock, current_order);
+        self.used_pages -= 1 << order;
     }
 
-    unsafe fn push_free(&mut self, node_ptr: *mut FreeNode, order: usize) {
-        let node = &mut *node_ptr;
-        node.next = self.free_lists[order];
-        self.free_lists[order] = NonNull::new(node_ptr);
+    unsafe fn push_free(&mut self, block_ptr: *mut FreeBlock, order: usize) {
+        let block = &mut *block_ptr;
+        block.prev = None;
+        block.next = self.free_lists[order];
+
+        if let Some(mut next) = self.free_lists[order] {
+            next.as_mut().prev = NonNull::new(block_ptr);
+        }
+        self.free_lists[order] = NonNull::new(block_ptr);
     }
 
-    fn pop_free(&mut self, order: usize) -> Option<NonNull<FreeNode>> {
-        let node_ptr = self.free_lists[order]?;
+    fn pop_free(&mut self, order: usize) -> Option<NonNull<FreeBlock>> {
+        let mut block_ptr = self.free_lists[order]?;
         unsafe {
-            self.free_lists[order] = node_ptr.as_ref().next;
+            self.free_lists[order] = block_ptr.as_mut().next;
+            if let Some(mut next) = block_ptr.as_mut().next {
+                next.as_mut().prev = None;
+            }
         }
-        Some(node_ptr)
+        Some(block_ptr)
     }
 
-    fn find_and_remove(&mut self, addr: usize, order: usize) -> Option<NonNull<FreeNode>> {
-        let mut current = self.free_lists[order];
-        let mut prev: Option<NonNull<FreeNode>> = None;
-
-        while let Some(node_ptr) = current {
-            if node_ptr.as_ptr() as usize == addr {
-                // Remove from list
-                unsafe {
-                    if let Some(mut p) = prev {
-                        p.as_mut().next = node_ptr.as_ref().next;
-                    } else {
-                        self.free_lists[order] = node_ptr.as_ref().next;
-                    }
-                }
-                return Some(node_ptr);
-            }
-            prev = Some(node_ptr);
-            unsafe {
-                current = node_ptr.as_ref().next;
-            }
+    unsafe fn remove_from_list(&mut self, block_ptr: *mut FreeBlock, order: usize) {
+        let block = &mut *block_ptr;
+        if let Some(mut prev) = block.prev {
+            prev.as_mut().next = block.next;
+        } else {
+            self.free_lists[order] = block.next;
         }
-        None
+
+        if let Some(mut next) = block.next {
+            next.as_mut().prev = block.prev;
+        }
     }
 
     pub fn stats(&self) -> (usize, usize) {
-        (self.used_memory, self.total_memory)
+        (self.used_pages * PAGE_SIZE, self.num_pages * PAGE_SIZE)
     }
 }
