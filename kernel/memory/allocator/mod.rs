@@ -111,46 +111,50 @@ unsafe impl GlobalAlloc for HierarchicalAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let size = layout.size().max(layout.align());
         
-        let ptr = if let Some(idx) = self.get_size_idx(size) {
-            // Try Per-CPU cache first (simulate core 0 for now)
-            let core_id = 0; // TODO: Get from arch
-            if let Some(obj) = self.per_cpu[core_id].lock().alloc(idx) {
-                obj
+        crate::arch::cpu::without_interrupts(|| {
+            let ptr = if let Some(idx) = self.get_size_idx(size) {
+                // Try Per-CPU cache first (simulate core 0 for now)
+                let core_id = 0; // TODO: Get from arch
+                if let Some(obj) = self.per_cpu[core_id].lock().alloc(idx) {
+                    obj
+                } else {
+                    // Fallback to global slab
+                    self.slabs[idx].lock().alloc(&mut self.buddy.lock()).unwrap_or(core::ptr::null_mut())
+                }
             } else {
-                // Fallback to global slab
-                self.slabs[idx].lock().alloc(&mut self.buddy.lock()).unwrap_or(core::ptr::null_mut())
+                let order = size_to_order(size);
+                self.buddy.lock().alloc(order).unwrap_or(core::ptr::null_mut())
+            };
+
+            #[cfg(debug_assertions)]
+            if !ptr.is_null() {
+                // Safety: tagging newly allocated memory for debugging purposes.
+                core::ptr::write_bytes(ptr, 0xAA, size);
             }
-        } else {
-            let order = size_to_order(size);
-            self.buddy.lock().alloc(order).unwrap_or(core::ptr::null_mut())
-        };
 
-        #[cfg(debug_assertions)]
-        if !ptr.is_null() {
-            // Safety: tagging newly allocated memory for debugging purposes.
-            core::ptr::write_bytes(ptr, 0xAA, size);
-        }
-
-        ptr
+            ptr
+        })
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let size = layout.size().max(layout.align());
 
-        #[cfg(debug_assertions)]
-        // Safety: poisoning freed memory to detect use-after-free in debug builds.
-        core::ptr::write_bytes(ptr, 0x55, size);
+        crate::arch::cpu::without_interrupts(|| {
+            #[cfg(debug_assertions)]
+            // Safety: poisoning freed memory to detect use-after-free in debug builds.
+            core::ptr::write_bytes(ptr, 0x55, size);
 
-        if let Some(idx) = self.get_size_idx(size) {
-            let core_id = 0; // TODO: Get from arch
-            if let Some(obj_to_return) = self.per_cpu[core_id].lock().free(idx, ptr) {
-                // Magazine full, return to global slab
-                self.slabs[idx].lock().free(obj_to_return);
+            if let Some(idx) = self.get_size_idx(size) {
+                let core_id = 0; // TODO: Get from arch
+                if let Some(obj_to_return) = self.per_cpu[core_id].lock().free(idx, ptr) {
+                    // Magazine full, return to global slab
+                    self.slabs[idx].lock().free(obj_to_return);
+                }
+            } else {
+                let order = size_to_order(size);
+                self.buddy.lock().free(ptr, order);
             }
-        } else {
-            let order = size_to_order(size);
-            self.buddy.lock().free(ptr, order);
-        }
+        });
     }
 }
 
