@@ -15,7 +15,7 @@
 // -----------------------------------------------------------------------------
 
 use crate::libkern::dmesg::kernel_log;
-use crate::libkern::safe_access::{Result, Ok, Err};
+use crate::libkern::safe_access::{Result, Ok};
 use alloc::format;
 use spin::Mutex;
 

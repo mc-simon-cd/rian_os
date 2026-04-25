@@ -1,4 +1,3 @@
-use tock_registers::interfaces::{Writeable, ReadWriteable};
 use crate::arch::ArchContext;
 use crate::kernel::memory::paging::VirtAddr;
 

@@ -142,5 +142,6 @@ pub fn _print(args: fmt::Arguments) {
     // while the WRITER lock is held and the ISR attempts to print.
     crate::arch::cpu::without_interrupts(|| {
         WRITER.lock().write_fmt(args).unwrap();
+        crate::arch::x86_64::serial::_print(args);
     });
 }

@@ -1,5 +1,6 @@
 pub mod gdt;
 pub mod instructions;
+pub mod serial;
 
 use ::x86_64::addr::PhysAddr;
 

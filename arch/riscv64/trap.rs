@@ -1,4 +1,4 @@
-use riscv::register::{sstatus, sepc, sscratch};
+use riscv::register::{sepc, sscratch};
 use crate::arch::ArchContext;
 use crate::kernel::memory::paging::VirtAddr;
 

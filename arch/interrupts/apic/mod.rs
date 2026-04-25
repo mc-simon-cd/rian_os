@@ -87,7 +87,7 @@ impl IoApic {
         Self { base }
     }
 
-    unsafe fn read(&self, reg: u32) -> u32 {
+    unsafe fn _read(&self, reg: u32) -> u32 {
         write_volatile(self.base.0 as *mut u32, reg);
         read_volatile((self.base.0 + 0x10) as *const u32)
     }
