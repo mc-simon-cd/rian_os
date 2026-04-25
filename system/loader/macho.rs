@@ -58,10 +58,14 @@ pub fn load_macho(data: &[u8], mapper: &mut Mapper) -> KernelResult<VirtAddr> {
                     flags = flags | PageTableFlags::NO_EXECUTE;
                 }
 
-                // Page alignment logic: vmsize and vmaddr are usually 4K aligned in Mach-O.
-                let num_pages = (segment.vmsize + 4095) / 4096;
+                // Page alignment logic: strictly align to 4KB boundaries
+                let start_addr = segment.vmaddr & !0xFFF;
+                let offset_in_page = segment.vmaddr & 0xFFF;
+                let total_vmsize = segment.vmsize + offset_in_page;
+                let num_pages = (total_vmsize + 4095) / 4096;
+
                 for i in 0..num_pages {
-                    let virt_addr = VirtAddr(segment.vmaddr + (i * 4096));
+                    let virt_addr = VirtAddr(start_addr + (i * 4096));
                     
                     // Allocate a physical frame (Simulated for this microkernel demo)
                     // In a production kernel, this would be a real PMM allocation.
